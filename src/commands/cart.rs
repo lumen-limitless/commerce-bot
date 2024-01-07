@@ -229,6 +229,10 @@ pub async fn receive_edit_cart_item_quantity_id(
                 }
             };
 
+            dialogue
+                .update(State::ReceiveEditCartItemQuantityAmount { cart_item_id })
+                .await?;
+
             bot.send_message(
                 msg.chat.id,
                 format!(
@@ -238,10 +242,6 @@ pub async fn receive_edit_cart_item_quantity_id(
             )
             .reply_markup(ForceReply::default())
             .await?;
-
-            dialogue
-                .update(State::ReceiveEditCartItemQuantityAmount { cart_item_id })
-                .await?;
         }
         None => {
             bot.send_message(msg.chat.id, "Please, send me the cart item id.")

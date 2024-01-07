@@ -38,16 +38,16 @@ pub enum State {
     // Add product
     ReceiveProductName,
     ReceiveProductDescription {
-        name: String,
+        product_name: String,
     },
     ReceiveProductPrice {
-        name: String,
-        description: String,
+        product_name: String,
+        product_description: String,
     },
     ReceiveProductImage {
-        name: String,
-        description: String,
-        price: f64,
+        product_name: String,
+        product_description: String,
+        product_price: i64,
     },
 
     // Remove product
@@ -111,16 +111,21 @@ pub fn schema() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + 'stat
         .branch(case![State::ReceiveProductId].endpoint(receive_product_id))
         .branch(case![State::ReceiveProductName].endpoint(receive_product_name))
         .branch(
-            case![State::ReceiveProductDescription { name }].endpoint(receive_product_description),
+            case![State::ReceiveProductDescription { product_name }]
+                .endpoint(receive_product_description),
         )
         .branch(
-            case![State::ReceiveProductPrice { name, description }].endpoint(receive_product_price),
+            case![State::ReceiveProductPrice {
+                product_name,
+                product_description
+            }]
+            .endpoint(receive_product_price),
         )
         .branch(
             case![State::ReceiveProductImage {
-                name,
-                description,
-                price
+                product_name,
+                product_description,
+                product_price
             }]
             .endpoint(receive_product_image),
         )
@@ -129,10 +134,10 @@ pub fn schema() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + 'stat
             case![State::ReceiveEditCartItemQuantityId]
                 .endpoint(receive_edit_cart_item_quantity_id),
         )
-        .branch(case![State::ReceiveEditCartItemQuantityAmount {
-            cart_item_id
-        }])
-        .endpoint(receive_edit_cart_item_quantity_amount)
+        .branch(
+            case![State::ReceiveEditCartItemQuantityAmount { cart_item_id }]
+                .endpoint(receive_edit_cart_item_quantity_amount),
+        )
         .branch(dptree::endpoint(invalid_state));
 
     dialogue::enter::<Update, InMemStorage<State>, State, _>()
@@ -146,7 +151,10 @@ async fn callback_query_handler(
     q: CallbackQuery,
     pool: SqlitePool,
 ) -> HandlerResult {
+    tracing::debug!("Callback query: {:#?}", q);
     if let Some(data) = &q.data {
+        tracing::info!("Handling callback query data: {}", data);
+
         match data.split_whitespace().collect::<Vec<&str>>().as_slice() {
             ["view_product", product_id] => {
                 view_product_callback(bot, q.clone(), pool, product_id.parse::<i64>()?).await
@@ -169,6 +177,7 @@ async fn callback_query_handler(
             _ => Ok(()),
         }
     } else {
+        tracing::warn!("Callback query data is empty");
         Ok(())
     }
 }

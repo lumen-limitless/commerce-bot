@@ -28,7 +28,7 @@ pub async fn receive_product_name(bot: Bot, dialogue: AppDialogue, msg: Message)
     match msg.text().map(ToOwned::to_owned) {
         Some(product_name) => {
             dialogue
-                .update(State::ReceiveProductDescription { name: product_name })
+                .update(State::ReceiveProductDescription { product_name })
                 .await?;
 
             bot.send_message(msg.chat.id, "Please, send me the product description.")
@@ -48,15 +48,15 @@ pub async fn receive_product_name(bot: Bot, dialogue: AppDialogue, msg: Message)
 pub async fn receive_product_description(
     bot: Bot,
     dialogue: AppDialogue,
-    name: String,
+    product_name: String,
     msg: Message,
 ) -> HandlerResult {
     match msg.text().map(ToOwned::to_owned) {
         Some(product_description) => {
             dialogue
                 .update(State::ReceiveProductPrice {
-                    name,
-                    description: product_description,
+                    product_name,
+                    product_description,
                 })
                 .await?;
 
@@ -77,12 +77,12 @@ pub async fn receive_product_description(
 pub async fn receive_product_price(
     bot: Bot,
     dialogue: AppDialogue,
-    (name, description): (String, String),
+    (product_name, product_description): (String, String),
     msg: Message,
 ) -> HandlerResult {
     match msg.text().map(ToOwned::to_owned) {
         Some(product_price) => {
-            let price = match product_price.parse::<f64>() {
+            let product_price = match product_price.parse::<i64>() {
                 Ok(price) => price,
                 Err(_) => {
                     bot.send_message(msg.chat.id, "Invalid price. Try again.")
@@ -93,9 +93,9 @@ pub async fn receive_product_price(
 
             dialogue
                 .update(State::ReceiveProductImage {
-                    name,
-                    description,
-                    price,
+                    product_name,
+                    product_description,
+                    product_price,
                 })
                 .await?;
 
@@ -115,7 +115,7 @@ pub async fn receive_product_price(
 
 pub async fn receive_product_image(
     bot: Bot,
-    (name, description, price): (String, String, f64),
+    (product_name, product_description, product_price): (String, String, i64),
     msg: Message,
     dialogue: AppDialogue,
     pool: SqlitePool,
@@ -124,16 +124,19 @@ pub async fn receive_product_image(
         Some(product_image) => {
             sqlx::query!(
                 "INSERT INTO products (name, description, price, image) VALUES (?, ?, ?, ?)",
-                name,
-                description,
-                price,
+                product_name,
+                product_description,
+                product_price,
                 product_image
             )
             .execute(&pool)
             .await?;
 
-            bot.send_message(msg.chat.id, f!("Product {name} added successfully."))
-                .await?;
+            bot.send_message(
+                msg.chat.id,
+                f!("Product {product_name} added successfully."),
+            )
+            .await?;
 
             dialogue.exit().await?;
         }
