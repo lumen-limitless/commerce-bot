@@ -15,3 +15,7 @@ itertools = "0.12.0"
 openssl = { version = "*", features = ["vendored"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
+chrono = "0.4.31"
+confy = { version = "0.5.1", features = ["toml"] }
+serde = "1.0.195"
+url = "2.5.0"

@@ -23,6 +23,7 @@ use crate::commands::{
     inventory::{add_to_cart_callback, inventory, view_product_callback},
     orders::view_orders,
     remove::{receive_product_id, remove_product},
+    shop::shop,
     start::start,
 };
 
@@ -88,6 +89,9 @@ pub enum Command {
 
     #[command(description = "View your orders.")]
     Orders,
+
+    #[command(description = "View the shop web app.")]
+    Shop,
 }
 
 pub fn schema() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + 'static>> {
@@ -104,7 +108,8 @@ pub fn schema() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + 'stat
         .branch(case![Command::Add].endpoint(add_product))
         .branch(case![Command::Remove].endpoint(remove_product))
         .branch(case!(Command::Cart).endpoint(view_cart))
-        .branch(case!(Command::Orders).endpoint(view_orders));
+        .branch(case!(Command::Orders).endpoint(view_orders))
+        .branch(case!(Command::Shop).endpoint(shop));
 
     let message_handler = Update::filter_message()
         .branch(command_handler)
@@ -170,7 +175,7 @@ async fn callback_query_handler(
                 edit_cart_item_quantity_callback(bot, q.clone(), dialogue).await
             }
 
-            ["place_order"] => place_order_callback(bot, q, pool).await,
+            ["place_order"] => place_order_callback(bot, q.clone(), pool).await,
 
             ["back"] => back_callback(bot, q.clone()).await,
 

@@ -5,4 +5,5 @@ pub mod help;
 pub mod inventory;
 pub mod orders;
 pub mod remove;
+pub mod shop;
 pub mod start;

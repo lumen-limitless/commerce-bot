@@ -23,51 +23,41 @@ pub async fn view_cart(bot: Bot, msg: Message, pool: SqlitePool) -> HandlerResul
         .fetch_one(&pool)
         .await?;
 
-    let cart_items = sqlx::query!("SELECT * FROM cart_items WHERE cart_id = ?", cart.id)
-        .fetch_all(&pool)
-        .await?;
-
-    if cart_items.is_empty() {
-        bot.send_message(msg.chat.id, "Your cart is empty.").await?;
-        return Ok(());
-    }
-
-    let cart_products = sqlx::query!(
-        "SELECT * FROM products WHERE id IN (SELECT product_id FROM cart_items WHERE cart_id = ?)",
+    let cart_items_with_products = sqlx::query!(
+        "SELECT cart_items.*, products.name, products.price FROM cart_items
+        INNER JOIN products ON cart_items.product_id = products.id
+        WHERE cart_items.cart_id = ?",
         cart.id
     )
     .fetch_all(&pool)
     .await?;
 
+    if cart_items_with_products.is_empty() {
+        bot.send_message(msg.chat.id, "Your cart is empty.").await?;
+        return Ok(());
+    }
+
     bot.send_message(
         msg.chat.id,
         f!(
             "Your cart({}):\n\n#ID - name - quantity - price\n\n--------------------------\n\n{}\n\n--------------------------\n\nTotal: {}",
-            cart_items.len(),
-            cart_products
+            cart_items_with_products.len(),
+            cart_items_with_products
                 .iter()
-                .map(|product| {
-                    let cart_item = cart_items
-                        .iter()
-                        .find(|cart_item| cart_item.product_id == product.id.unwrap())
-                        .unwrap();
+                .map(|item| {
+
                     f!(
                         "#{} - {} - x{} - {}",
-                        cart_item.id,
-                        product.name,
-                        cart_item.quantity,
-                        format_price(product.price * cart_item.quantity )
+                        item.id,
+                        item.name,
+                       item.quantity,
+                        format_price(item.price * item.quantity )
                     )
                 })
                 .collect::<Vec<_>>()
                 .join("\n"),
-            format_price(cart_products.iter().fold(0, |acc, product| {
-                let quantity = cart_items
-                    .iter()
-                    .find(|cart_item| cart_item.product_id == product.id.unwrap())
-                    .unwrap()
-                    .quantity;
-                acc + product.price * quantity
+            format_price(cart_items_with_products.iter().fold(0, |acc, item| {
+                acc + item.price * item.quantity
             })),
         ),
     )

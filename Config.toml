@@ -1,0 +1,4 @@
+payment_methods = ["CASH"]
+fulfillment_methods = ["DELIVERY", "PICKUP"]
+open = "06:00"
+close = "22:00"

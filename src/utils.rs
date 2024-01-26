@@ -1,3 +1,7 @@
+use std::path::Path;
+
+use serde::{Deserialize, Serialize};
+
 pub fn format_price(price: i64) -> String {
     format!("${:.2}", price / 100)
 }
@@ -9,6 +13,19 @@ pub fn assert_admin_id(id: i64) -> eyre::Result<()> {
     } else {
         Ok(())
     }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Config {
+    open: String,
+    close: String,
+    payment_methods: Vec<String>,
+    fulfillment_methods: Vec<String>,
+}
+
+pub fn parse_config() -> eyre::Result<Config> {
+    let config = confy::load_path(Path::new("Config.toml"))?;
+    Ok(config)
 }
 
 #[cfg(test)]
